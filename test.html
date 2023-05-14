@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Infinitris</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="stylesheet" href="stylesheet.css">
+	</head>
+	<body>
+		<div id="fullscreen_container">
+			<div id="stat_container">
+				<p>
+					Pieces placed: <span id="stat_pieces_placed">0</span><br>
+					Lines cleared: <span id="stat_lines_cleared">0</span><br>
+					Max height reached: <span id="stat_max_height">0</span>
+				</p>
+			</div>
+			<div id="game_container" style="width: calc((100vh - (2 * 8px)) * 0.5);"></div>
+			<div id="pieces_container">
+				<p>Next pieces:</p>
+				<div id="next_piece_0"></div>
+				<div id="next_piece_1"></div>
+				<div id="next_piece_2"></div>
+				<div id="next_piece_3"></div>
+				<div id="next_piece_4"></div>
+				<div id="next_piece_5"></div>
+				<div id="next_piece_6"></div>
+			</div>
+		</div>
+
+		<script src="javascript.js"></script>
+	</body>
+</html>
