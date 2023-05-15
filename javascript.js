@@ -79,6 +79,29 @@ function updatePieceDisplay() { // Update next pieces display, also request piec
 	next_piece_6_element.innerText = next_pieces[6];
 }
 
+function getSolidRows() { // Return all fully solid rows
+	var retval = [];
+
+	// Iterate playing_field
+	for (const [row, v] of Object.entries(playing_field)) {
+
+		// Check current row
+		var row_is_solid = true;
+		for (const [col, status] of Object.entries(v)) {
+			if (status !== "solid") {
+				row_is_solid = false;
+				break;
+			}
+		}
+
+		// No non-solid cell found: Add to retval object
+		if (row_is_solid) retval.push(row);
+	}
+
+	// Return the results
+	return retval;
+}
+
 function refreshTableRowElementClasses() { // Updating all table-row elements numerically
 	var all_rows = document.querySelectorAll("tr");
 	var num_rows = Object.keys(playing_field).length - 1;
@@ -89,7 +112,7 @@ function refreshTableRowElementClasses() { // Updating all table-row elements nu
 	}
 }
 
-function checkFullSolidRow() { // Checking if a full solid row exists
+function createNewRows(amt) { // Creating this amount of new empty rows at the top
 }
 
 function isOutOfBounds(cell_0, cell_1, cell_2, cell_3) { // Checking if the target cells are out of bounds
@@ -310,44 +333,65 @@ window.addEventListener("DOMContentLoaded", () => {
 		// Runs when no piece is spawned and long timer was just reset
 		if (!piece_spawned && timer_long === 0) {
 
-			// Check for and delete solid rows
-			var num_deleted_rows = 0;
-			var num_total_rows = Object.keys(playing_field).length - 1;
-			for (const [row, v] of Object.entries(playing_field)) {
+			// Get rows that need to be cleared
+			var rows_to_clear = getSolidRows();
 
-				// Check if current row is completely solid
-				var current_row_solid = true;
-				for (const [col, status] of Object.entries(v)) {
-					if (status !== "solid") {
-						current_row_solid = false;
-						break;
+			// If there are rows to clear: Iterate entire playing field
+			if (rows_to_clear.length > 0) {
+				var num_removed_rows = 0;
+				var num_total_rows = Object.keys(playing_field).length - 1;
+				for (const [row, v] of Object.entries(playing_field)) {
+
+					// Current row marked solid: Increase num removed rows and delete HTML row
+					var deleted_current_row = false;
+					if (rows_to_clear[row]) {
+						console.debug(`Delete .row_${row}!`);
+						num_removed_rows++;
+						document.querySelector(`.row_${row}`).remove();
+						deleted_current_row = true;
+						// Note: playing field gets updated ~5-10 lines down.
+					}
+
+					// We already deleted a row, so this one needs updating
+					if (num_removed_rows > 0) {
+						if (!deleted_current_row) {
+							console.debug(`Update .row_${Number(row) + num_removed_rows} to .row_${row}! (If it exists)`);
+							var element_to_update = document.querySelector(`.row_${Number(row) + num_removed_rows}`);
+							if (element_to_update) element_to_update.classList.replace(`row_${Number(row) + num_removed_rows}`, `row_${row}`);
+						}
+						playing_field[row] = playing_field[String(Number(row) + num_removed_rows)];
 					}
 				}
 
-				// If the current row is solid, delete it, update playing field and elements
-				if (current_row_solid) {
-					num_deleted_rows++;
-
-					// Delete the row element
-					document.querySelector(`.row_${row}`).remove();
-
-					// Grab the info from x rows above and save it in the current one
-					playing_field[row] = playing_field[String(Number(row) + num_deleted_rows)]; // eg. row 2 gets info from row 3
-
-					// Update on screen stats
-					stat_lines_cleared++;
-					document.getElementById("stat_lines_cleared").innerText = stat_lines_cleared;
+				// Now delete playing_field entries from the top that shouldn't exist anymore
+				for (i = num_total_rows; i > num_total_rows - num_removed_rows; i--) {
+					console.debug(`playing_field entry ${i} should be removed.`);
+					delete playing_field[String(i)];
 				}
 			}
 
-			// Once done iterating the entire playing_field object, delete x rows from the top
-			for (i = num_total_rows; i > num_total_rows - num_deleted_rows; i--) delete playing_field[String(i)];
-
-			// Refresh all displayed <tr> elements' classes
-			refreshTableRowElementClasses();
-
-			// DEBUG
-			// console.log(playing_field);
+			// If we fell below 20 total rows, add empty ones back in
+			var new_total_rows = Object.keys(playing_field).length;
+			if (new_total_rows < 20) {
+				for (i = new_total_rows; i < 20; i++) { // Ex: 20 lines, one cleared, now 19 lines, means i = 0, i < 1; i++
+					playing_field[String(i)] = {"0": "free", "1": "free", "2": "free", "3": "free", "4": "free", "5": "free", "6": "free", "7": "free", "8": "free", "9": "free"};
+					var new_row = document.createElement("tr");
+					new_row.classList.add(`row_${i}`);
+					new_row.innerHTML = `
+						<td class="col_0"></td>
+						<td class="col_1"></td>
+						<td class="col_2"></td>
+						<td class="col_3"></td>
+						<td class="col_4"></td>
+						<td class="col_5"></td>
+						<td class="col_6"></td>
+						<td class="col_7"></td>
+						<td class="col_8"></td>
+						<td class="col_9"></td>
+					`;
+					document.querySelector("tbody").prepend(new_row);
+				}
+			};
 
 			// Remove next piece from pieces list and update the display
 			spawned_piece_type = next_pieces.splice(0, 1);
@@ -368,17 +412,18 @@ window.addEventListener("DOMContentLoaded", () => {
 
 							// Creating a new row in the table
 							var new_row = document.createElement("tr");
+							new_row.classList.add(`row_${top_row + 1}`);
 							new_row.innerHTML = `
-								<td id="${top_row + 1}_0" class="free"></td>
-								<td id="${top_row + 1}_1" class="free"></td>
-								<td id="${top_row + 1}_2" class="free"></td>
-								<td id="${top_row + 1}_3" class="free"></td>
-								<td id="${top_row + 1}_4" class="free"></td>
-								<td id="${top_row + 1}_5" class="free"></td>
-								<td id="${top_row + 1}_6" class="free"></td>
-								<td id="${top_row + 1}_7" class="free"></td>
-								<td id="${top_row + 1}_8" class="free"></td>
-								<td id="${top_row + 1}_9" class="free"></td>
+								<td class="col_0"></td>
+								<td class="col_1"></td>
+								<td class="col_2"></td>
+								<td class="col_3"></td>
+								<td class="col_4"></td>
+								<td class="col_5"></td>
+								<td class="col_6"></td>
+								<td class="col_7"></td>
+								<td class="col_8"></td>
+								<td class="col_9"></td>
 							`;
 							document.querySelector("tbody").prepend(new_row);
 
