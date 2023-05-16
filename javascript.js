@@ -1,6 +1,3 @@
-// AT THIS POINT I WILL EDIT THE ID'S TO CLASSES!
-
-
 // --------------------------- VARIABLES ---------------------------
 // #region
 const pieces = ["O", "I", "S", "Z", "L", "J", "T"];
@@ -79,6 +76,48 @@ function updatePieceDisplay() { // Update next pieces display, also request piec
 	next_piece_6_element.innerText = next_pieces[6];
 }
 
+function deleteSolidRows() { // Deleting solid rows
+
+	// Variables
+	var rows_to_clear = getSolidRows();
+	var total_rows = Object.keys(playing_field).length;
+	var deleted_rows = 0;
+	var new_playing_field = {};
+
+	// Solid rows found
+	if (rows_to_clear.length > 0) {
+
+		// Iterate from 0 to highest row
+		for (i = 0; i < total_rows; i++) {
+
+			// Currently checked row *is* solid
+			if (rows_to_clear.includes(String(i))) {
+				document.querySelector(`.row_${i}`).remove();
+				deleted_rows++;
+
+			// Currently checked row is *not* solid
+			} else {
+
+				// If we already deleted a row, renaming is required
+				if (deleted_rows > 0) {
+					document.querySelector(`.row_${i}`).classList.replace(`row_${i}`, `row_${i - deleted_rows}`);
+					new_playing_field[String(i - deleted_rows)] = playing_field[String(i)];
+				} else {
+					new_playing_field[String(i)] = playing_field[String(i)];
+				}
+			}
+		}
+
+		// Update playing_field
+		playing_field = new_playing_field;
+
+		// Update statistic
+		stat_lines_cleared = stat_lines_cleared + deleted_rows;
+		document.getElementById("stat_lines_cleared").innerText = stat_lines_cleared;
+
+	}
+}
+
 function getSolidRows() { // Return all fully solid rows
 	var retval = [];
 
@@ -100,19 +139,6 @@ function getSolidRows() { // Return all fully solid rows
 
 	// Return the results
 	return retval;
-}
-
-function refreshTableRowElementClasses() { // Updating all table-row elements numerically
-	var all_rows = document.querySelectorAll("tr");
-	var num_rows = Object.keys(playing_field).length - 1;
-
-	for (const [i, element] of Object.entries(all_rows)) {
-		var new_number = num_rows - i;
-		element.classList.replace(element.className, `row_${new_number}`);
-	}
-}
-
-function createNewRows(amt) { // Creating this amount of new empty rows at the top
 }
 
 function isOutOfBounds(cell_0, cell_1, cell_2, cell_3) { // Checking if the target cells are out of bounds
@@ -275,16 +301,6 @@ function attemptMovePiece(dir) { // Moving a piece or solidifying if unable to g
 		playing_field[String(src_cell_3[0])][String(src_cell_3[1])] = "free";
 		document.querySelector(`.row_${src_cell_3[0]} > .col_${src_cell_3[1]}`).classList.remove("controlled", `piece_${spawned_piece_type}`);
 	}
-
-	// DEBUG: Draw numbers
-	// document.getElementById(`${src_cell_0[0]}_${src_cell_0[1]}`).innerText = "";
-	// document.getElementById(`${src_cell_1[0]}_${src_cell_1[1]}`).innerText = "";
-	// document.getElementById(`${src_cell_2[0]}_${src_cell_2[1]}`).innerText = "";
-	// document.getElementById(`${src_cell_3[0]}_${src_cell_3[1]}`).innerText = "";
-	// document.getElementById(`${tgt_cell_0[0]}_${tgt_cell_0[1]}`).innerText = "0";
-	// document.getElementById(`${tgt_cell_1[0]}_${tgt_cell_1[1]}`).innerText = "1";
-	// document.getElementById(`${tgt_cell_2[0]}_${tgt_cell_2[1]}`).innerText = "2";
-	// document.getElementById(`${tgt_cell_3[0]}_${tgt_cell_3[1]}`).innerText = "3";
 }
 // #endregion
 
@@ -333,42 +349,8 @@ window.addEventListener("DOMContentLoaded", () => {
 		// Runs when no piece is spawned and long timer was just reset
 		if (!piece_spawned && timer_long === 0) {
 
-			// Get rows that need to be cleared
-			var rows_to_clear = getSolidRows();
-
-			// If there are rows to clear: Iterate entire playing field
-			if (rows_to_clear.length > 0) {
-				var num_removed_rows = 0;
-				var num_total_rows = Object.keys(playing_field).length - 1;
-				for (const [row, v] of Object.entries(playing_field)) {
-
-					// Current row marked solid: Increase num removed rows and delete HTML row
-					var deleted_current_row = false;
-					if (rows_to_clear[row]) {
-						console.debug(`Delete .row_${row}!`);
-						num_removed_rows++;
-						document.querySelector(`.row_${row}`).remove();
-						deleted_current_row = true;
-						// Note: playing field gets updated ~5-10 lines down.
-					}
-
-					// We already deleted a row, so this one needs updating
-					if (num_removed_rows > 0) {
-						if (!deleted_current_row) {
-							console.debug(`Update .row_${Number(row) + num_removed_rows} to .row_${row}! (If it exists)`);
-							var element_to_update = document.querySelector(`.row_${Number(row) + num_removed_rows}`);
-							if (element_to_update) element_to_update.classList.replace(`row_${Number(row) + num_removed_rows}`, `row_${row}`);
-						}
-						playing_field[row] = playing_field[String(Number(row) + num_removed_rows)];
-					}
-				}
-
-				// Now delete playing_field entries from the top that shouldn't exist anymore
-				for (i = num_total_rows; i > num_total_rows - num_removed_rows; i--) {
-					console.debug(`playing_field entry ${i} should be removed.`);
-					delete playing_field[String(i)];
-				}
-			}
+			// Checking for and deleting all solid rows
+			deleteSolidRows();
 
 			// If we fell below 20 total rows, add empty ones back in
 			var new_total_rows = Object.keys(playing_field).length;
@@ -596,26 +578,10 @@ window.addEventListener("keydown", (event) => {
 			// Updating rotation
 			spawned_piece_rotation++;
 			if (spawned_piece_rotation >= 4) spawned_piece_rotation = 0;
-
-			// DEBUG: Draw numbers
-			// document.getElementById(`${src_cell_0[0]}_${src_cell_0[1]}`).innerText = "";
-			// document.getElementById(`${src_cell_1[0]}_${src_cell_1[1]}`).innerText = "";
-			// document.getElementById(`${src_cell_2[0]}_${src_cell_2[1]}`).innerText = "";
-			// document.getElementById(`${src_cell_3[0]}_${src_cell_3[1]}`).innerText = "";
-			// document.getElementById(`${tgt_cell_0[0]}_${tgt_cell_0[1]}`).innerText = "0";
-			// document.getElementById(`${tgt_cell_1[0]}_${tgt_cell_1[1]}`).innerText = "1";
-			// document.getElementById(`${tgt_cell_2[0]}_${tgt_cell_2[1]}`).innerText = "2";
-			// document.getElementById(`${tgt_cell_3[0]}_${tgt_cell_3[1]}`).innerText = "3";
 		} else if (event.code === "ArrowDown") {
 			attemptMovePiece("down");
 			timer_long = 1;
 		}
-	// This would be for arrow down to trigger a new piece instantly spawning,
-	// but it feels kind of weird while holding the button down.
-	// It might need a small cooldown for the user to allow releasing the button
-	// on time, otherwise it'd just spam the next piece already.
-	// } else {
-	// 	if (event.code === "ArrowDown") timer_long = -1;
 	}
 });
 // #endregion
