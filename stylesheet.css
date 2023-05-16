@@ -33,7 +33,6 @@ body {
 /* Game container styling */
 #game_container {
 	margin: 8px 0;
-	/* width: calc((100vh - (2 * 8px)) * 0.5); */
 }
 
 table {
@@ -46,8 +45,6 @@ td {
 	border: 1px solid black;
 	padding: 0;
 	margin: 0;
-	width: calc(100% / 10);
-	height: calc(100% / 20);
 }
 
 .piece_O {background-color: #FF5A5A;}
